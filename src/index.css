@@ -1,0 +1,79 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+body {
+  font-family: system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  background: #f0f0f0;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+.font-serif {
+  font-family: ui-serif, Georgia, Cambria, 'Times New Roman', Times, serif;
+}
+
+@media print {
+  html,
+  body {
+    background: white;
+    padding: 0;
+    margin: 0;
+    font-size: 9px;
+  }
+  .app-root {
+    display: block !important;
+    height: auto !important;
+    background: white !important;
+  }
+  aside,
+  .no-print,
+  .print\:hidden {
+    display: none !important;
+  }
+  main {
+    display: block !important;
+    background: white !important;
+    overflow: visible !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    width: auto !important;
+    height: auto !important;
+  }
+  .canvas-preview {
+    display: block !important;
+    gap: 0 !important;
+    padding: 0 !important;
+    overflow: visible !important;
+    width: auto !important;
+    height: auto !important;
+    background: white !important;
+  }
+  .sheet {
+    width: var(--inner-w) !important;
+    height: var(--inner-h) !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    box-shadow: none !important;
+    background: white !important;
+    page-break-after: always !important;
+    break-after: page !important;
+  }
+  .sheet:last-child {
+    page-break-after: auto !important;
+    break-after: auto !important;
+  }
+  .canvas-page {
+    display: block !important;
+    width: 100% !important;
+    height: 100% !important;
+    max-width: none !important;
+    box-shadow: none !important;
+    border: none !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    transform: none !important;
+    border-radius: 0 !important;
+  }
+}
