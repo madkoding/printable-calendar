@@ -3,6 +3,7 @@ export interface CalendarDay {
   isWeekend: boolean
   isCurrentMonth: boolean
   holiday?: { id: string; name: string }
+  saint?: string
 }
 
 export interface CalendarWeek {

@@ -120,5 +120,7 @@
   "fonts.courier": "Courier New",
   "fonts.verdana": "Verdana",
   "fonts.trebuchet": "Trebuchet MS",
-  "fonts.comic": "Comic Sans MS"
+  "fonts.comic": "Comic Sans MS",
+  "controls.santoral": "Tagesheiliger",
+  "controls.notes": "Notizen"
 }

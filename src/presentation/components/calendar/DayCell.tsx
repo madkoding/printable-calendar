@@ -18,8 +18,21 @@ export function DayCell({ day, showWritingSpace }: DayCellProps) {
       className="border p-1 flex flex-col min-h-0"
       style={{ background: day.isWeekend ? pal.weekendBg : 'transparent', borderColor: pal.cellBorder }}
     >
-      <div className="text-sm font-bold leading-none print:text-base" style={{ color: day.isWeekend ? pal.weekendDayNumber : pal.dayNumber }}>
-        {day.date}
+      <div className="text-sm font-bold leading-none print:text-base flex items-start justify-between gap-1" style={{ color: day.isWeekend ? pal.weekendDayNumber : pal.dayNumber }}>
+        <span>{day.date}</span>
+        {day.saint && (() => {
+          const words = day.saint.split(' ')
+          if (words.length <= 2) {
+            return <span className="font-normal text-[6px] leading-tight text-right print:text-[7px]" style={{ color: '#9ca3af' }}>{day.saint}</span>
+          }
+          const mid = Math.ceil(words.length / 2)
+          return (
+            <div className="text-right">
+              <div className="font-normal text-[6px] leading-tight print:text-[7px]" style={{ color: '#9ca3af' }}>{words.slice(0, mid).join(' ')}</div>
+              <div className="font-normal text-[6px] leading-tight print:text-[7px]" style={{ color: '#9ca3af' }}>{words.slice(mid).join(' ')}</div>
+            </div>
+          )
+        })()}
       </div>
       {day.holiday && (
         <div

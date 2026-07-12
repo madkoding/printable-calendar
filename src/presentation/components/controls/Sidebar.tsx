@@ -7,6 +7,8 @@ import { ThemeControls } from './ThemeControls'
 import { FontSelector } from './FontSelector'
 import { PrintButton } from './PrintButton'
 import { LanguageSelector } from './LanguageSelector'
+import { SantoralToggle } from './SantoralToggle'
+import { NotesToggle } from './NotesToggle'
 
 export function Sidebar() {
   const { t } = useTranslation()
@@ -23,6 +25,8 @@ export function Sidebar() {
           <CountrySelector />
           <LanguageSelector />
         </div>
+        <SantoralToggle />
+        <NotesToggle />
         <FontSelector />
         <ThemeControls />
       </div>

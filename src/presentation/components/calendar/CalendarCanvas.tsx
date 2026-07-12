@@ -87,7 +87,7 @@ function Sheet({ paperW, paperH, margin, scale, children }: SheetProps) {
 
 export function CalendarCanvas() {
   const { t } = useTranslation()
-  const { monthsInRange, country, template, paperSize, orientation, pagesPerSheet } = useCalendar()
+  const { monthsInRange, country, template, paperSize, orientation, pagesPerSheet, showSantoral, showNotes } = useCalendar()
   const { paletteId, fontId } = useTheme()
   const [scale, setScale] = useState(1)
 
@@ -117,9 +117,9 @@ export function CalendarCanvas() {
     () =>
       monthsInRange.map(({ month, year }) => {
         const holidays = getHolidaysForMonth(provider, year, month)
-        return buildCalendarGrid(year, month, t(`months.${MONTH_KEYS[month]}`), holidays)
+        return buildCalendarGrid(year, month, t(`months.${MONTH_KEYS[month]}`), holidays, showSantoral)
       }),
-    [monthsInRange, provider, t],
+    [monthsInRange, provider, t, showSantoral],
   )
 
   const weekPages: CanvasWeekPage[] = useMemo(
@@ -196,7 +196,7 @@ export function CalendarCanvas() {
               width={innerWPx}
               height={innerHPx}
               scale={scale}
-              draw={(ctx) => drawMonthMultiPage(ctx, sheet, pal, t, innerWPx, innerHPx, orientation, pagesPerSheet)}
+              draw={(ctx) => drawMonthMultiPage(ctx, sheet, pal, t, innerWPx, innerHPx, orientation, pagesPerSheet, showNotes)}
             />
           </Sheet>
         ))}
@@ -213,7 +213,7 @@ export function CalendarCanvas() {
               width={innerWPx}
               height={innerHPx}
               scale={scale}
-              draw={(ctx) => drawWeekMultiPage(ctx, sheet, pal, t, innerWPx, innerHPx, orientation, pagesPerSheet)}
+              draw={(ctx) => drawWeekMultiPage(ctx, sheet, pal, t, innerWPx, innerHPx, orientation, pagesPerSheet, showNotes)}
             />
           </Sheet>
         ))}
@@ -230,7 +230,7 @@ export function CalendarCanvas() {
               width={innerWPx}
               height={innerHPx}
               scale={scale}
-              draw={(ctx) => drawYearSheet(ctx, page, pal, t, innerWPx, innerHPx, 0, orientation)}
+              draw={(ctx) => drawYearSheet(ctx, page, pal, t, innerWPx, innerHPx, 0, orientation, showNotes)}
             />
           </Sheet>
         ))}

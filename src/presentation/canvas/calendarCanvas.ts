@@ -181,6 +181,22 @@ function drawDayCell(
   const numberColor = isFree ? pal.weekendDayNumber : pal.dayNumber
   drawText(ctx, String(day.date), x + 4, y + ns + 2, w - 8, `${pal.numberWeight} ${ns}px ${pal.fontFamily}`, numberColor)
 
+  if (day.saint) {
+    const saintSize = Math.max(5, hs - 2)
+    const words = day.saint.split(' ')
+    const dateW = ctx.measureText(String(day.date)).width + 8
+    const availW = w - dateW - 8
+    if (words.length <= 2) {
+      drawText(ctx, day.saint, x + w - 4, y + ns + 1, availW, `${pal.numberWeight} ${saintSize}px ${pal.fontFamily}`, '#9ca3af', 'right')
+    } else {
+      const mid = Math.ceil(words.length / 2)
+      const line1 = words.slice(0, mid).join(' ')
+      const line2 = words.slice(mid).join(' ')
+      drawText(ctx, line1, x + w - 4, y + ns + 1, availW, `${pal.numberWeight} ${saintSize}px ${pal.fontFamily}`, '#9ca3af', 'right')
+      drawText(ctx, line2, x + w - 4, y + ns + saintSize + 3, availW, `${pal.numberWeight} ${saintSize}px ${pal.fontFamily}`, '#9ca3af', 'right')
+    }
+  }
+
   if (day.holiday) {
     const label = t(`holidays.${day.holiday.id}`)
     const holidayY = y + ns + hs + 6
@@ -214,8 +230,10 @@ function drawNotesSection(
   h: number,
   pal: Palette,
   t: (k: string) => string,
-  compact: boolean
+  compact: boolean,
+  showNotes: boolean
 ): void {
+  if (!showNotes) return
   ctx.strokeStyle = '#1f2937'
   ctx.lineWidth = 2
   ctx.beginPath()
@@ -238,7 +256,8 @@ export function drawMonthSheet(
   t: (k: string) => string,
   paperW: number,
   paperH: number,
-  marginMm = 10
+  marginMm = 10,
+  showNotes = true
 ): void {
   const m = metrics(paperW, paperH, marginMm)
   fillRect(ctx, 0, 0, m.paperW, m.paperH, 'white')
@@ -279,7 +298,7 @@ export function drawMonthSheet(
     }
   }
 
-  drawNotesSection(ctx, m.margin, gridTop + gridH + 4, m.innerW, notesHeight - 4, pal, t, false)
+  drawNotesSection(ctx, m.margin, gridTop + gridH + 4, m.innerW, notesHeight - 4, pal, t, false, showNotes)
 }
 
 export function drawWeekSheet(
@@ -290,7 +309,8 @@ export function drawWeekSheet(
   paperW: number,
   paperH: number,
   marginMm = 10,
-  orientation: 'portrait' | 'landscape' = 'portrait'
+  orientation: 'portrait' | 'landscape' = 'portrait',
+  showNotes = true
 ): void {
   const m = metrics(paperW, paperH, marginMm)
   fillRect(ctx, 0, 0, m.paperW, m.paperH, 'white')
@@ -308,7 +328,7 @@ export function drawWeekSheet(
     drawPortraitWeek(ctx, page, m, contentTop, contentH, pal, t)
   }
 
-  drawNotesSection(ctx, m.margin, contentTop + contentH + 4, m.innerW, notesHeight - 4, pal, t, true)
+  drawNotesSection(ctx, m.margin, contentTop + contentH + 4, m.innerW, notesHeight - 4, pal, t, true, showNotes)
 }
 
 function drawPortraitWeek(
@@ -355,6 +375,12 @@ function drawPortraitWeek(
     const numSize = Math.max(12, pal.numberSize - 2)
     drawText(ctx, transformText(dayName(t, di), pal.headerTransform), x + 6, y + 14, w / 2 - 8, `${pal.headerWeight} ${labelSize}px ${pal.fontFamily}`, color)
     drawText(ctx, String(date.getDate()), x + w - 6, y + 16, w / 2 - 8, `${pal.numberWeight} ${numSize}px ${pal.fontFamily}`, color, 'right')
+
+    if (day?.saint) {
+      const saintSize = Math.max(8, numSize * 0.7)
+      const dateW = ctx.measureText(String(date.getDate())).width + 4
+      drawText(ctx, day.saint, x + w - 6 - dateW, y + 15, w / 2 - 8, `${pal.numberWeight} ${saintSize}px ${pal.fontFamily}`, '#9ca3af', 'right')
+    }
 
     if (day?.holiday) {
       const label = t(`holidays.${day.holiday.id}`)
@@ -405,6 +431,12 @@ function drawLandscapeWeek(
     const numSize = Math.max(12, pal.numberSize - 2)
     drawText(ctx, transformText(dayName(t, di), pal.headerTransform), x + 6, top + 14, w / 2 - 8, `${pal.headerWeight} ${labelSize}px ${pal.fontFamily}`, color)
     drawText(ctx, String(date.getDate()), x + w - 6, top + 16, w / 2 - 8, `${pal.numberWeight} ${numSize}px ${pal.fontFamily}`, color, 'right')
+
+    if (day?.saint) {
+      const saintSize = Math.max(8, numSize * 0.7)
+      const dateW = ctx.measureText(String(date.getDate())).width + 4
+      drawText(ctx, day.saint, x + w - 6 - dateW, top + 15, w / 2 - 8, `${pal.numberWeight} ${saintSize}px ${pal.fontFamily}`, '#9ca3af', 'right')
+    }
 
     if (day?.holiday) {
       const label = t(`holidays.${day.holiday.id}`)
@@ -566,9 +598,10 @@ export function drawMonthMultiPage(
   height: number,
   orientation: 'portrait' | 'landscape',
   pagesPerSheet: 1 | 2 | 4,
+  showNotes = true,
 ): void {
   if (pagesPerSheet === 1) {
-    drawMonthSheet(ctx, grids[0], pal, t, width, height, 0)
+    drawMonthSheet(ctx, grids[0], pal, t, width, height, 0, showNotes)
     return
   }
 
@@ -600,9 +633,10 @@ export function drawWeekMultiPage(
   height: number,
   orientation: 'portrait' | 'landscape',
   pagesPerSheet: 1 | 2 | 4,
+  showNotes = true,
 ): void {
   if (pagesPerSheet === 1) {
-    drawWeekSheet(ctx, pages[0], pal, t, width, height, 0, orientation)
+    drawWeekSheet(ctx, pages[0], pal, t, width, height, 0, orientation, showNotes)
     return
   }
 
@@ -633,7 +667,8 @@ export function drawYearSheet(
   paperW: number,
   paperH: number,
   marginMm = 10,
-  orientation: 'portrait' | 'landscape' = 'portrait'
+  orientation: 'portrait' | 'landscape' = 'portrait',
+  showNotes = true
 ): void {
   const m = metrics(paperW, paperH, marginMm)
   fillRect(ctx, 0, 0, m.paperW, m.paperH, 'white')
@@ -662,7 +697,7 @@ export function drawYearSheet(
   }
 
   if (notesHeight > 0) {
-    drawNotesSection(ctx, m.margin, top + rows * cellH + gapY * (rows - 1) + 4, m.innerW, notesHeight - 4, pal, t, true)
+    drawNotesSection(ctx, m.margin, top + rows * cellH + gapY * (rows - 1) + 4, m.innerW, notesHeight - 4, pal, t, true, showNotes)
   }
 }
 
@@ -781,6 +816,13 @@ function drawMiniMonth(
         fillRect(ctx, cx + 1, cy + 1, cellW - 2, cellH - 2, isFree ? pal.weekendBg : 'white')
         const color = isFree ? pal.weekendDayNumber : pal.dayNumber
         drawText(ctx, String(day.date), cx + 4, cy + daySize + 4, cellW - 8, `${pal.numberWeight} ${daySize}px ${pal.fontFamily}`, color)
+
+        if (day.saint) {
+          const saintSize = Math.max(6, holidaySize)
+          const dateW = ctx.measureText(String(day.date)).width + 4
+          drawText(ctx, day.saint, cx + cellW - 4, cy + daySize + 3, cellW - dateW - 8, `${pal.numberWeight} ${saintSize}px ${pal.fontFamily}`, '#9ca3af', 'right')
+        }
+
         if (day.holiday) {
           const label = t(`holidays.${day.holiday.id}`)
           const holidayY = cy + daySize + holidaySize + 6

@@ -20,6 +20,8 @@ interface CalendarContextType {
   paperSize: string
   orientation: Orientation
   pagesPerSheet: PagesPerSheet
+  showSantoral: boolean
+  showNotes: boolean
   monthsInRange: MonthYear[]
   setFrom: (m: MonthYear) => void
   setTo: (m: MonthYear) => void
@@ -28,6 +30,8 @@ interface CalendarContextType {
   setPaperSize: (p: string) => void
   setOrientation: (o: Orientation) => void
   setPagesPerSheet: (n: PagesPerSheet) => void
+  setShowSantoral: (v: boolean) => void
+  setShowNotes: (v: boolean) => void
 }
 
 const CalendarContext = createContext<CalendarContextType | null>(null)
@@ -74,6 +78,8 @@ export function CalendarProvider({ children }: { children: ReactNode }) {
   const [paperSize, setPaperSize] = useState(DEFAULT_PAPER)
   const [orientation, setOrientation] = useState<Orientation>(DEFAULT_ORIENTATION)
   const [pagesPerSheet, setPagesPerSheet] = useState<PagesPerSheet>(1)
+  const [showSantoral, setShowSantoral] = useState(false)
+  const [showNotes, setShowNotes] = useState(true)
 
   const setFrom = useCallback((m: MonthYear) => {
     setFromState((prev) => {
@@ -120,7 +126,7 @@ export function CalendarProvider({ children }: { children: ReactNode }) {
   return (
     <CalendarContext.Provider
       value={{
-        from, to, country, template, paperSize, orientation, pagesPerSheet, monthsInRange,
+        from, to, country, template, paperSize, orientation, pagesPerSheet, showSantoral, showNotes, monthsInRange,
         setFrom,
         setTo,
         setCountry,
@@ -128,6 +134,8 @@ export function CalendarProvider({ children }: { children: ReactNode }) {
         setPaperSize,
         setOrientation,
         setPagesPerSheet,
+        setShowSantoral,
+        setShowNotes,
       }}
     >
       {children}

@@ -1,5 +1,6 @@
 import type { CalendarGrid, CalendarDay, CalendarWeek } from '../entities/Calendar'
 import type { Holiday } from '../entities/Holiday'
+import { getSantoral } from '@/data/santoral'
 
 const DAYS_PER_WEEK = 7
 const MAX_WEEKS = 6
@@ -9,6 +10,7 @@ export function buildCalendarGrid(
   month: number,
   monthName: string,
   holidays: Holiday[],
+  showSantoral = false,
   weekStart: 0 | 1 | 6 = 1
 ): CalendarGrid {
   const firstDay = new Date(year, month, 1)
@@ -46,6 +48,7 @@ export function buildCalendarGrid(
           isWeekend,
           isCurrentMonth: true,
           holiday: holiday ? { id: holiday.id, name: holiday.id } : undefined,
+          saint: showSantoral ? getSantoral(month, date) : undefined,
         })
 
         date++
