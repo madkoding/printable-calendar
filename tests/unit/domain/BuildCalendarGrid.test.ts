@@ -64,4 +64,31 @@ describe('BuildCalendarGrid', () => {
     const allDays = grid.weeks.flatMap(w => w.days.filter((d): d is NonNullable<typeof d> => d !== null))
     expect(allDays.length).toBe(29)
   })
+
+  it('groups imported events by day', () => {
+    const grid = buildCalendarGrid(2026, 0, 'January', [], false, 1, [
+      { id: 'cal1:evt1', day: 10, title: 'Dentist', color: '#2563eb' },
+      { id: 'cal1:evt2', day: 10, title: 'Standup', color: '#16a34a' },
+      { id: 'cal2:evt3', day: 15, title: 'Birthday', color: '#dc2626' },
+    ])
+    const day10 = grid.weeks.flatMap(w => w.days).find((d): d is NonNullable<typeof d> => d !== null && d.date === 10)
+    const day15 = grid.weeks.flatMap(w => w.days).find((d): d is NonNullable<typeof d> => d !== null && d.date === 15)
+    const day1 = grid.weeks.flatMap(w => w.days).find((d): d is NonNullable<typeof d> => d !== null && d.date === 1)
+
+    expect(day10?.events).toHaveLength(2)
+    expect(day10?.events?.map(e => e.title).sort()).toEqual(['Dentist', 'Standup'])
+    expect(day15?.events).toEqual([{ id: 'cal2:evt3', title: 'Birthday', color: '#dc2626' }])
+    expect(day1?.events).toBeUndefined()
+  })
+
+  it('deduplicates events sharing the same title on the same day, keeping the first', () => {
+    const grid = buildCalendarGrid(2026, 0, 'January', [], false, 1, [
+      { id: 'cal1:evt1', day: 10, title: 'Busy', color: '#2563eb' },
+      { id: 'cal2:evt2', day: 10, title: 'Busy', color: '#dc2626' },
+      { id: 'cal1:evt3', day: 10, title: '  Busy  ', color: '#16a34a' },
+    ])
+    const day10 = grid.weeks.flatMap(w => w.days).find((d): d is NonNullable<typeof d> => d !== null && d.date === 10)
+
+    expect(day10?.events).toEqual([{ id: 'cal1:evt1', title: 'Busy', color: '#2563eb' }])
+  })
 })
