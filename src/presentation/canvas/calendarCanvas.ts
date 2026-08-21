@@ -1,5 +1,6 @@
 import type { CalendarGrid, CalendarDay } from '@/domain/calendar/entities/Calendar'
 import type { Palette } from '@/config/palettes'
+import { getContrastTextColor } from '@/presentation/utils/color'
 
 const DAY_KEYS = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun']
 const MONTH_KEYS = ['january', 'february', 'march', 'april', 'may', 'june', 'july', 'august', 'september', 'october', 'november', 'december']
@@ -66,6 +67,35 @@ function drawText(
   const fitted = fitText(ctx, text, font, maxWidth)
   ctx.font = fitted
   ctx.fillText(text, x, y, maxWidth)
+}
+
+function drawSaintLabel(
+  ctx: CanvasRenderingContext2D,
+  saint: string,
+  rightX: number,
+  topY: number,
+  bottomY: number,
+  maxWidth: number,
+  nominalSize: number,
+  fontFamily: string,
+  fontWeight: string
+): void {
+  const availH = bottomY - topY
+  if (availH <= 4 || maxWidth <= 4) return
+
+  const words = saint.split(' ')
+  const lines = words.length <= 2 ? [saint] : [
+    words.slice(0, Math.ceil(words.length / 2)).join(' '),
+    words.slice(Math.ceil(words.length / 2)).join(' '),
+  ]
+
+  const lineHeight = availH / lines.length
+  const size = Math.max(5, Math.min(nominalSize, Math.floor(lineHeight) - 1))
+
+  lines.forEach((line, i) => {
+    const baselineY = topY + lineHeight * (i + 1) - 2
+    drawText(ctx, line, rightX, baselineY, maxWidth, `${fontWeight} ${size}px ${fontFamily}`, '#9ca3af', 'right')
+  })
 }
 
 function fillRect(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, color: string): void {
@@ -137,6 +167,50 @@ function roundRect(ctx: CanvasRenderingContext2D, x: number, y: number, w: numbe
   ctx.closePath()
 }
 
+interface OverlayBar {
+  text: string
+  bg: string
+  fg: string
+}
+
+function buildDayBars(day: CalendarDay, t: (k: string) => string, pal: Palette): OverlayBar[] {
+  const bars: OverlayBar[] = []
+  if (day.holiday) {
+    bars.push({ text: t(`holidays.${day.holiday.id}`), bg: pal.holidayBg, fg: pal.holidayText })
+  }
+  for (const event of day.events ?? []) {
+    bars.push({ text: event.title, bg: event.color, fg: getContrastTextColor(event.color) })
+  }
+  return bars
+}
+
+function drawOverlayBars(
+  ctx: CanvasRenderingContext2D,
+  bars: OverlayBar[],
+  x: number,
+  y: number,
+  w: number,
+  availableH: number,
+  rowHeight: number,
+  fontFamily: string,
+  fontWeight: string,
+  maxBars: number
+): void {
+  if (bars.length === 0 || w <= 0 || rowHeight <= 0) return
+
+  const maxRows = Math.max(0, Math.min(maxBars, Math.floor(availableH / rowHeight)))
+  if (maxRows === 0) return
+  const visible = bars.slice(0, maxRows)
+  const fontSize = Math.max(6, Math.min(rowHeight - 3, rowHeight * 0.68))
+
+  visible.forEach((bar, i) => {
+    const rowY = y + i * rowHeight
+    ctx.fillStyle = bar.bg
+    ctx.fillRect(x, rowY, w, rowHeight - 1)
+    drawText(ctx, bar.text, x + 3, rowY + rowHeight - (rowHeight - fontSize) / 2 - 2, w - 6, `${fontWeight} ${fontSize}px ${fontFamily}`, bar.fg)
+  })
+}
+
 function drawDayCell(
   ctx: CanvasRenderingContext2D,
   day: CalendarDay | null,
@@ -181,40 +255,19 @@ function drawDayCell(
   const numberColor = isFree ? pal.weekendDayNumber : pal.dayNumber
   drawText(ctx, String(day.date), x + 4, y + ns + 2, w - 8, `${pal.numberWeight} ${ns}px ${pal.fontFamily}`, numberColor)
 
+  const linesTop = y + ns + 8
+
   if (day.saint) {
-    const saintSize = Math.max(5, hs - 2)
-    const words = day.saint.split(' ')
     const dateW = ctx.measureText(String(day.date)).width + 8
     const availW = w - dateW - 8
-    if (words.length <= 2) {
-      drawText(ctx, day.saint, x + w - 4, y + ns + 1, availW, `${pal.numberWeight} ${saintSize}px ${pal.fontFamily}`, '#9ca3af', 'right')
-    } else {
-      const mid = Math.ceil(words.length / 2)
-      const line1 = words.slice(0, mid).join(' ')
-      const line2 = words.slice(mid).join(' ')
-      drawText(ctx, line1, x + w - 4, y + ns + 1, availW, `${pal.numberWeight} ${saintSize}px ${pal.fontFamily}`, '#9ca3af', 'right')
-      drawText(ctx, line2, x + w - 4, y + ns + saintSize + 3, availW, `${pal.numberWeight} ${saintSize}px ${pal.fontFamily}`, '#9ca3af', 'right')
-    }
+    drawSaintLabel(ctx, day.saint, x + w - 4, y, linesTop - 2, availW, Math.max(5, hs - 2), pal.fontFamily, pal.numberWeight)
   }
 
-  if (day.holiday) {
-    const label = t(`holidays.${day.holiday.id}`)
-    const holidayY = y + ns + hs + 6
-    ctx.fillStyle = pal.holidayBg
-    const padding = 2
-    ctx.font = `${pal.numberWeight} ${hs}px ${pal.fontFamily}`
-    const textMetrics = ctx.measureText(label)
-    const boxW = Math.min(w - 8, textMetrics.width + padding * 2)
-    const boxH = hs + padding * 2
-    roundRect(ctx, x + 4, holidayY - hs - padding, boxW, boxH, 2)
-    ctx.fill()
-    drawText(ctx, label, x + 4 + padding, holidayY - padding, boxW - padding * 2, `${pal.numberWeight} ${hs}px ${pal.fontFamily}`, pal.holidayText)
-    if (pal.showWritingLines) {
-      drawWritingLines(ctx, x + 4, holidayY + 4, w - 8, h - (holidayY - y) - 8, pal.writingLine, ls, pal.writingLineStyle)
-    }
-  } else if (pal.showWritingLines) {
-    drawWritingLines(ctx, x + 4, y + ns + 8, w - 8, h - ns - 12, pal.writingLine, ls, pal.writingLineStyle)
+  const linesH = h - (linesTop - y) - 4
+  if (pal.showWritingLines) {
+    drawWritingLines(ctx, x + 4, linesTop, w - 8, linesH, pal.writingLine, ls, pal.writingLineStyle)
   }
+  drawOverlayBars(ctx, buildDayBars(day, t, pal), x + 4, linesTop, w - 8, linesH, ls, pal.fontFamily, pal.numberWeight, 3)
 }
 
 function drawMonthHeader(ctx: CanvasRenderingContext2D, grid: CalendarGrid, m: PageMetrics, pal: Palette): void {
@@ -376,28 +429,20 @@ function drawPortraitWeek(
     drawText(ctx, transformText(dayName(t, di), pal.headerTransform), x + 6, y + 14, w / 2 - 8, `${pal.headerWeight} ${labelSize}px ${pal.fontFamily}`, color)
     drawText(ctx, String(date.getDate()), x + w - 6, y + 16, w / 2 - 8, `${pal.numberWeight} ${numSize}px ${pal.fontFamily}`, color, 'right')
 
+    const linesTop = y + 24
+
     if (day?.saint) {
       const saintSize = Math.max(8, numSize * 0.7)
       const dateW = ctx.measureText(String(date.getDate())).width + 4
-      drawText(ctx, day.saint, x + w - 6 - dateW, y + 15, w / 2 - 8, `${pal.numberWeight} ${saintSize}px ${pal.fontFamily}`, '#9ca3af', 'right')
+      drawSaintLabel(ctx, day.saint, x + w - 6 - dateW, y + 2, linesTop - 2, w / 2 - 8, saintSize, pal.fontFamily, pal.numberWeight)
     }
 
-    if (day?.holiday) {
-      const label = t(`holidays.${day.holiday.id}`)
-      ctx.fillStyle = pal.holidayBg
-      const boxY = y + 22
-      const padding = 2
-      ctx.font = `${pal.numberWeight} 8px ${pal.fontFamily}`
-      const boxW = Math.min(w - 12, ctx.measureText(label).width + padding * 2)
-      const boxH = 10
-      roundRect(ctx, x + 6, boxY, boxW, boxH, 2)
-      ctx.fill()
-      drawText(ctx, label, x + 6 + padding, boxY + 8, boxW - padding * 2, `${pal.numberWeight} 8px ${pal.fontFamily}`, pal.holidayText)
-      if (pal.showWritingLines) {
-        drawWritingLines(ctx, x + 6, boxY + 16, w - 12, height - 24, pal.writingLine, 14, pal.writingLineStyle)
-      }
-    } else if (pal.showWritingLines) {
-      drawWritingLines(ctx, x + 6, y + 24, w - 12, height - 30, pal.writingLine, 14, pal.writingLineStyle)
+    const linesH = height - (linesTop - y) - 6
+    if (pal.showWritingLines) {
+      drawWritingLines(ctx, x + 6, linesTop, w - 12, linesH, pal.writingLine, 14, pal.writingLineStyle)
+    }
+    if (day) {
+      drawOverlayBars(ctx, buildDayBars(day, t, pal), x + 6, linesTop, w - 12, linesH, 14, pal.fontFamily, pal.numberWeight, 2)
     }
   }
 }
@@ -432,28 +477,20 @@ function drawLandscapeWeek(
     drawText(ctx, transformText(dayName(t, di), pal.headerTransform), x + 6, top + 14, w / 2 - 8, `${pal.headerWeight} ${labelSize}px ${pal.fontFamily}`, color)
     drawText(ctx, String(date.getDate()), x + w - 6, top + 16, w / 2 - 8, `${pal.numberWeight} ${numSize}px ${pal.fontFamily}`, color, 'right')
 
+    const linesTop = top + 24
+
     if (day?.saint) {
       const saintSize = Math.max(8, numSize * 0.7)
       const dateW = ctx.measureText(String(date.getDate())).width + 4
-      drawText(ctx, day.saint, x + w - 6 - dateW, top + 15, w / 2 - 8, `${pal.numberWeight} ${saintSize}px ${pal.fontFamily}`, '#9ca3af', 'right')
+      drawSaintLabel(ctx, day.saint, x + w - 6 - dateW, top + 2, linesTop - 2, w / 2 - 8, saintSize, pal.fontFamily, pal.numberWeight)
     }
 
-    if (day?.holiday) {
-      const label = t(`holidays.${day.holiday.id}`)
-      ctx.fillStyle = pal.holidayBg
-      const boxY = top + 22
-      const padding = 2
-      ctx.font = `${pal.numberWeight} 8px ${pal.fontFamily}`
-      const boxW = Math.min(w - 12, ctx.measureText(label).width + padding * 2)
-      const boxH = 10
-      roundRect(ctx, x + 6, boxY, boxW, boxH, 2)
-      ctx.fill()
-      drawText(ctx, label, x + 6 + padding, boxY + 8, boxW - padding * 2, `${pal.numberWeight} 8px ${pal.fontFamily}`, pal.holidayText)
-      if (pal.showWritingLines) {
-        drawWritingLines(ctx, x + 6, boxY + 16, w - 12, h - 28, pal.writingLine, 14, pal.writingLineStyle)
-      }
-    } else if (pal.showWritingLines) {
-      drawWritingLines(ctx, x + 6, top + 24, w - 12, h - 30, pal.writingLine, 14, pal.writingLineStyle)
+    const linesH = h - (linesTop - top) - 6
+    if (pal.showWritingLines) {
+      drawWritingLines(ctx, x + 6, linesTop, w - 12, linesH, pal.writingLine, 14, pal.writingLineStyle)
+    }
+    if (day) {
+      drawOverlayBars(ctx, buildDayBars(day, t, pal), x + 6, linesTop, w - 12, linesH, 14, pal.fontFamily, pal.numberWeight, 2)
     }
 
     x += w + gap
@@ -487,7 +524,6 @@ function drawMiniWeek(
     const dayW = (w - gap * 6) / 7
     const labelSize = Math.max(7, Math.min(10, contentH * 0.08))
     const numberSize = Math.max(8, Math.min(12, contentH * 0.1))
-    const holidaySize = Math.max(6, Math.min(8, contentH * 0.06))
 
     for (let di = 0; di < 7; di++) {
       const day = page.days[di]
@@ -503,21 +539,13 @@ function drawMiniWeek(
       drawText(ctx, dayName(t, di).charAt(0).toUpperCase(), dx + dayW / 2, contentTop + labelSize + 4, dayW - 2, `${pal.headerWeight} ${labelSize}px ${pal.fontFamily}`, color, 'center')
       drawText(ctx, String(date.getDate()), dx + dayW / 2, contentTop + labelSize + numberSize + 8, dayW - 2, `${pal.numberWeight} ${numberSize}px ${pal.fontFamily}`, color, 'center')
 
-      if (day?.holiday) {
-        const label = t(`holidays.${day.holiday.id}`)
-        ctx.fillStyle = pal.holidayBg
-        const boxY = contentTop + labelSize + numberSize + 14
-        ctx.font = `${pal.numberWeight} ${holidaySize}px ${pal.fontFamily}`
-        const boxW = Math.min(dayW - 4, ctx.measureText(label).width + 4)
-        const boxH = holidaySize + 4
-        roundRect(ctx, dx + 2, boxY, boxW, boxH, 1)
-        ctx.fill()
-        drawText(ctx, label, dx + 4, boxY + holidaySize + 1, boxW - 4, `${pal.numberWeight} ${holidaySize}px ${pal.fontFamily}`, pal.holidayText)
-        if (pal.showWritingLines) {
-          drawWritingLines(ctx, dx + 2, boxY + boxH + 4, dayW - 4, contentH - (boxY + boxH - contentTop) - 8, pal.writingLine, contentH * 0.12, pal.writingLineStyle)
-        }
-      } else if (pal.showWritingLines) {
-        drawWritingLines(ctx, dx + 2, contentTop + labelSize + numberSize + 14, dayW - 4, contentH - labelSize - numberSize - 20, pal.writingLine, contentH * 0.12, pal.writingLineStyle)
+      const linesTop = contentTop + labelSize + numberSize + 14
+      const linesH = contentH - (linesTop - contentTop) - 6
+      if (pal.showWritingLines) {
+        drawWritingLines(ctx, dx + 2, linesTop, dayW - 4, linesH, pal.writingLine, contentH * 0.12, pal.writingLineStyle)
+      }
+      if (day) {
+        drawOverlayBars(ctx, buildDayBars(day, t, pal), dx + 2, linesTop, dayW - 4, linesH, contentH * 0.12, pal.fontFamily, pal.numberWeight, 2)
       }
     }
   } else {
@@ -538,7 +566,6 @@ function drawMiniWeek(
 
     const labelSize = Math.max(7, Math.min(11, cellH * 0.1))
     const numberSize = Math.max(9, Math.min(14, cellH * 0.12))
-    const holidaySize = Math.max(6, Math.min(9, cellH * 0.07))
 
     for (let di = 0; di < 7; di++) {
       const day = page.days[di]
@@ -558,21 +585,13 @@ function drawMiniWeek(
       drawText(ctx, transformText(dayName(t, di), pal.headerTransform), dx + 6, dy + labelSize + 4, dw / 2 - 8, `${pal.headerWeight} ${labelSize}px ${pal.fontFamily}`, color)
       drawText(ctx, String(date.getDate()), dx + dw - 6, dy + labelSize + 6, dw / 2 - 8, `${pal.numberWeight} ${numberSize}px ${pal.fontFamily}`, color, 'right')
 
-      if (day?.holiday) {
-        const label = t(`holidays.${day.holiday.id}`)
-        ctx.fillStyle = pal.holidayBg
-        const boxY = dy + labelSize + numberSize + 10
-        ctx.font = `${pal.numberWeight} ${holidaySize}px ${pal.fontFamily}`
-        const boxW = Math.min(dw - 12, ctx.measureText(label).width + 4)
-        const boxH = holidaySize + 4
-        roundRect(ctx, dx + 6, boxY, boxW, boxH, 2)
-        ctx.fill()
-        drawText(ctx, label, dx + 8, boxY + holidaySize + 1, boxW - 4, `${pal.numberWeight} ${holidaySize}px ${pal.fontFamily}`, pal.holidayText)
-        if (pal.showWritingLines) {
-          drawWritingLines(ctx, dx + 6, boxY + boxH + 4, dw - 12, dh - (boxY + boxH - dy) - 10, pal.writingLine, cellH * 0.18, pal.writingLineStyle)
-        }
-      } else if (pal.showWritingLines) {
-        drawWritingLines(ctx, dx + 6, dy + labelSize + numberSize + 12, dw - 12, dh - labelSize - numberSize - 18, pal.writingLine, cellH * 0.18, pal.writingLineStyle)
+      const linesTop = dy + labelSize + numberSize + 12
+      const linesH = dh - (linesTop - dy) - 6
+      if (pal.showWritingLines) {
+        drawWritingLines(ctx, dx + 6, linesTop, dw - 12, linesH, pal.writingLine, cellH * 0.18, pal.writingLineStyle)
+      }
+      if (day) {
+        drawOverlayBars(ctx, buildDayBars(day, t, pal), dx + 6, linesTop, dw - 12, linesH, cellH * 0.18, pal.fontFamily, pal.numberWeight, 2)
       }
     }
   }
@@ -693,7 +712,7 @@ export function drawYearSheet(
     const row = Math.floor(i / cols)
     const x = m.margin + col * (cellW + gapX)
     const y = top + row * (cellH + gapY)
-    drawMiniMonth(ctx, grids[i], x, y, cellW, cellH, pal, t)
+    drawMiniMonth(ctx, grids[i], x, y, cellW, cellH, pal, t, 'minimal')
   }
 
   if (notesHeight > 0) {
@@ -783,6 +802,7 @@ function drawMiniMonth(
   h: number,
   pal: Palette,
   t: (k: string) => string,
+  detail: 'full' | 'minimal' = 'full',
 ): void {
   const titleH = h * 0.12
   const headerH = h * 0.1
@@ -794,7 +814,7 @@ function drawMiniMonth(
   const titleSize = Math.max(8, Math.min(16, h * 0.05))
   const headerSize = Math.max(7, Math.min(12, h * 0.04))
   const daySize = Math.max(8, Math.min(14, h * 0.045))
-  const holidaySize = Math.max(6, Math.min(9, h * 0.03))
+  const saintSize = Math.max(6, Math.min(9, h * 0.03))
 
   drawText(ctx, `${grid.monthName} ${grid.year}`, x + w / 2, y + titleH * 0.7, w - 8, `${pal.titleWeight} ${titleSize}px ${pal.fontFamily}`, '#374151', 'center')
 
@@ -817,27 +837,19 @@ function drawMiniMonth(
         const color = isFree ? pal.weekendDayNumber : pal.dayNumber
         drawText(ctx, String(day.date), cx + 4, cy + daySize + 4, cellW - 8, `${pal.numberWeight} ${daySize}px ${pal.fontFamily}`, color)
 
-        if (day.saint) {
-          const saintSize = Math.max(6, holidaySize)
+        const linesTop = cy + daySize + 10
+
+        if (detail === 'full' && day.saint) {
           const dateW = ctx.measureText(String(day.date)).width + 4
-          drawText(ctx, day.saint, cx + cellW - 4, cy + daySize + 3, cellW - dateW - 8, `${pal.numberWeight} ${saintSize}px ${pal.fontFamily}`, '#9ca3af', 'right')
+          drawSaintLabel(ctx, day.saint, cx + cellW - 4, cy, linesTop - 2, cellW - dateW - 8, saintSize, pal.fontFamily, pal.numberWeight)
         }
 
-        if (day.holiday) {
-          const label = t(`holidays.${day.holiday.id}`)
-          const holidayY = cy + daySize + holidaySize + 6
-          ctx.fillStyle = pal.holidayBg
-          ctx.font = `${pal.numberWeight} ${holidaySize}px ${pal.fontFamily}`
-          const boxW = Math.min(cellW - 8, ctx.measureText(label).width + 4)
-          const boxH = holidaySize + 4
-          roundRect(ctx, cx + 4, holidayY - holidaySize - 2, boxW, boxH, 2)
-          ctx.fill()
-          drawText(ctx, label, cx + 6, holidayY - 2, boxW - 4, `${pal.numberWeight} ${holidaySize}px ${pal.fontFamily}`, pal.holidayText)
-          if (pal.showWritingLines) {
-            drawWritingLines(ctx, cx + 4, holidayY + 4, cellW - 8, cellH - (holidayY - cy) - 10, pal.writingLine, cellH * 0.25, pal.writingLineStyle)
-          }
-        } else if (pal.showWritingLines) {
-          drawWritingLines(ctx, cx + 4, cy + daySize + 10, cellW - 8, cellH - daySize - 16, pal.writingLine, cellH * 0.25, pal.writingLineStyle)
+        const linesH = cellH - (linesTop - cy) - 6
+        if (pal.showWritingLines) {
+          drawWritingLines(ctx, cx + 4, linesTop, cellW - 8, linesH, pal.writingLine, cellH * 0.25, pal.writingLineStyle)
+        }
+        if (detail === 'full') {
+          drawOverlayBars(ctx, buildDayBars(day, t, pal), cx + 4, linesTop, cellW - 8, linesH, cellH * 0.25, pal.fontFamily, pal.numberWeight, 2)
         }
       } else {
         fillRect(ctx, cx + 1, cy + 1, cellW - 2, cellH - 2, pal.emptyBg)

@@ -9,6 +9,7 @@ import { PrintButton } from './PrintButton'
 import { LanguageSelector } from './LanguageSelector'
 import { SantoralToggle } from './SantoralToggle'
 import { NotesToggle } from './NotesToggle'
+import { ImportedCalendarsSection } from './ImportedCalendarsSection'
 
 export function Sidebar() {
   const { t } = useTranslation()
@@ -27,6 +28,7 @@ export function Sidebar() {
         </div>
         <SantoralToggle />
         <NotesToggle />
+        <ImportedCalendarsSection />
         <FontSelector />
         <ThemeControls />
       </div>

@@ -4,13 +4,14 @@ import userEvent from '@testing-library/user-event'
 import { HomePage } from '@/presentation/pages/HomePage'
 import { CalendarProvider } from '@/app/providers/CalendarProvider'
 import { ThemeProvider } from '@/app/providers/ThemeProvider'
+import { ImportedCalendarsProvider } from '@/app/providers/ImportedCalendarsProvider'
 import '@/app/providers/i18n'
 
 function Wrapper({ children }: { children: React.ReactNode }) {
   return (
     <ThemeProvider>
       <CalendarProvider>
-        {children}
+        <ImportedCalendarsProvider>{children}</ImportedCalendarsProvider>
       </CalendarProvider>
     </ThemeProvider>
   )

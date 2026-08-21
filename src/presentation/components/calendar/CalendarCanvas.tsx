@@ -2,9 +2,13 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useCalendar, DEFAULT_PRINT_MARGIN_MM } from '@/app/providers/CalendarProvider'
 import { useTheme } from '@/app/providers/ThemeProvider'
+import { useImportedCalendars } from '@/app/providers/ImportedCalendarsProvider'
 import { getProvider } from '@/data/holidays'
+import { IcsCalendarIndex } from '@/data/ical/IcsCalendarIndex'
 import { buildCalendarGrid } from '@/domain/calendar/usecases'
 import { getHolidaysForMonth } from '@/domain/calendar/usecases/GetHolidaysForMonth'
+import { getImportedEventsForMonth } from '@/domain/calendar/usecases/GetImportedEventsForMonth'
+import type { DayEventInput } from '@/domain/calendar/usecases/BuildCalendarGrid'
 import { PAPER_SIZES } from '@/config/paperSizes'
 import { PALETTES } from '@/config/palettes'
 import { FONTS } from '@/config/fonts'
@@ -89,6 +93,7 @@ export function CalendarCanvas() {
   const { t } = useTranslation()
   const { monthsInRange, country, template, paperSize, orientation, pagesPerSheet, showSantoral, showNotes } = useCalendar()
   const { paletteId, fontId } = useTheme()
+  const { calendars, showRecurringEvents } = useImportedCalendars()
   const [scale, setScale] = useState(1)
 
   const pal = useMemo(() => {
@@ -113,13 +118,37 @@ export function CalendarCanvas() {
 
   const provider = useMemo(() => getProvider(country), [country])
 
+  const enabledCalendars = useMemo(() => calendars.filter((c) => c.enabled), [calendars])
+
+  const icsIndexes = useMemo(
+    () =>
+      enabledCalendars.flatMap((calendar) => {
+        try {
+          return [{ calendar, index: new IcsCalendarIndex(calendar.icsText) }]
+        } catch {
+          return []
+        }
+      }),
+    [enabledCalendars],
+  )
+
   const grids: CalendarGrid[] = useMemo(
     () =>
       monthsInRange.map(({ month, year }) => {
         const holidays = getHolidaysForMonth(provider, year, month)
-        return buildCalendarGrid(year, month, t(`months.${MONTH_KEYS[month]}`), holidays, showSantoral)
+        const events: DayEventInput[] = icsIndexes.flatMap(({ calendar, index }) =>
+          getImportedEventsForMonth(index, year, month, showRecurringEvents)
+            .filter((occ) => !calendar.hiddenTitles.includes(occ.title.trim()))
+            .map((occ) => ({
+              id: `${calendar.id}:${occ.uid}`,
+              day: occ.date.getDate(),
+              title: occ.title,
+              color: calendar.color,
+            })),
+        )
+        return buildCalendarGrid(year, month, t(`months.${MONTH_KEYS[month]}`), holidays, showSantoral, 1, events)
       }),
-    [monthsInRange, provider, t, showSantoral],
+    [monthsInRange, provider, t, showSantoral, icsIndexes, showRecurringEvents],
   )
 
   const weekPages: CanvasWeekPage[] = useMemo(

@@ -3,12 +3,15 @@ import { render, fireEvent, screen } from '@testing-library/react'
 import { CalendarCanvas } from '@/presentation/components/calendar/CalendarCanvas'
 import { CalendarProvider, useCalendar } from '@/app/providers/CalendarProvider'
 import { ThemeProvider } from '@/app/providers/ThemeProvider'
+import { ImportedCalendarsProvider } from '@/app/providers/ImportedCalendarsProvider'
 import '@/app/providers/i18n'
 
 function Wrapper({ children }: { children: React.ReactNode }) {
   return (
     <ThemeProvider>
-      <CalendarProvider>{children}</CalendarProvider>
+      <CalendarProvider>
+        <ImportedCalendarsProvider>{children}</ImportedCalendarsProvider>
+      </CalendarProvider>
     </ThemeProvider>
   )
 }
