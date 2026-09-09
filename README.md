@@ -45,3 +45,7 @@ npm run preview
 ```bash
 npm test
 ```
+
+## Star History
+
+[![Star History Chart](https://api.star-history.com/svg?repos=madkoding/printable-calendar&type=Date)](https://star-history.com/#madkoding/printable-calendar&Date)
