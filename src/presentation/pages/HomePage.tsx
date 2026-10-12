@@ -1,13 +1,19 @@
-import { useCalendar } from '@/app/providers/CalendarProvider'
-import { PAPER_SIZES } from '@/config/paperSizes'
-import { Sidebar } from '@/presentation/components/controls/Sidebar'
-import { CalendarCanvas } from '@/presentation/components/calendar/CalendarCanvas'
+import { useCalendar } from "@/app/providers/CalendarProvider";
+import { PAPER_SIZES } from "@/config/paperSizes";
+import { Sidebar } from "@/presentation/components/controls/Sidebar";
+import { CalendarCanvas } from "@/presentation/components/calendar/CalendarCanvas";
 
 export function HomePage() {
-  const { paperSize, orientation } = useCalendar()
-  const paper = PAPER_SIZES.find((p) => p.id === paperSize) ?? PAPER_SIZES[0]
-  const paperW = orientation === 'portrait' ? parseFloat(paper.width) : parseFloat(paper.height)
-  const paperH = orientation === 'portrait' ? parseFloat(paper.height) : parseFloat(paper.width)
+  const { paperSize, orientation } = useCalendar();
+  const paper = PAPER_SIZES.find((p) => p.id === paperSize) ?? PAPER_SIZES[0];
+  const paperW =
+    orientation === "portrait"
+      ? parseFloat(paper.width)
+      : parseFloat(paper.height);
+  const paperH =
+    orientation === "portrait"
+      ? parseFloat(paper.height)
+      : parseFloat(paper.width);
 
   return (
     <div className="app-root flex h-screen print:block print:h-auto">
@@ -20,5 +26,5 @@ export function HomePage() {
         <CalendarCanvas />
       </main>
     </div>
-  )
+  );
 }

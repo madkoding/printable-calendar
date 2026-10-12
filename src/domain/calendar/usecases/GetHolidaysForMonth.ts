@@ -1,9 +1,9 @@
-import type { Holiday, HolidayProvider } from '../entities/Holiday'
+import type { Holiday, HolidayProvider } from "../entities/Holiday";
 
 export function getHolidaysForMonth(
   provider: HolidayProvider,
   year: number,
-  month: number
+  month: number,
 ): Holiday[] {
-  return provider.getHolidays(year, month)
+  return provider.getHolidays(year, month);
 }

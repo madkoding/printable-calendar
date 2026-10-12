@@ -1,9 +1,9 @@
-import { useCallback } from 'react'
+import { useCallback } from "react";
 
 export function usePrint() {
   const print = useCallback(() => {
-    window.print()
-  }, [])
+    window.print();
+  }, []);
 
-  return { print }
+  return { print };
 }

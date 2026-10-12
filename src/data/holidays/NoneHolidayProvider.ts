@@ -1,14 +1,14 @@
-import type { Holiday } from '@/domain/calendar/entities/Holiday'
-import { BaseHolidayProvider } from './BaseHolidayProvider'
+import type { Holiday } from "@/domain/calendar/entities/Holiday";
+import { BaseHolidayProvider } from "./BaseHolidayProvider";
 
 export class NoneHolidayProvider extends BaseHolidayProvider {
-  countryCode = 'NONE'
+  countryCode = "NONE";
 
   getFixed(): Holiday[] {
-    return []
+    return [];
   }
 
   getMobile(): Holiday[] {
-    return []
+    return [];
   }
 }

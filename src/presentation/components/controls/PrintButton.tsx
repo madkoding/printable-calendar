@@ -1,16 +1,16 @@
-import { useTranslation } from 'react-i18next'
-import { Button } from '@/presentation/components/ui/Button'
+import { useTranslation } from "react-i18next";
+import { Button } from "@/presentation/components/ui/Button";
 
 export function PrintButton() {
-  const { t } = useTranslation()
+  const { t } = useTranslation();
 
   function handlePrint() {
-    window.print()
+    window.print();
   }
 
   return (
     <Button onClick={handlePrint} className="w-full justify-center">
-      {t('controls.print')}
+      {t("controls.print")}
     </Button>
-  )
+  );
 }
